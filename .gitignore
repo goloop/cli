@@ -1,0 +1,9 @@
+.vscode
+
+# Coverage output
+coverage.out
+coverage.html
+
+# built binary
+/goloop
+/cli
