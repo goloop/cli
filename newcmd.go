@@ -139,6 +139,10 @@ func cmdNew(args []string) int {
 
 	target := name
 	if dir != "" {
+		if err := validateDir(dir); err != nil {
+			fmt.Fprintf(os.Stderr, "new: %v\n", err)
+			return 2
+		}
 		target = filepath.Join(dir, name)
 	}
 	if _, err := os.Stat(target); err == nil && !force {

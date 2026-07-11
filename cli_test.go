@@ -31,7 +31,7 @@ func TestScanTraces(t *testing.T) {
 	os.WriteFile(clean, []byte("package main\n// a normal comment\n"), 0o644)
 	os.WriteFile(dirty, []byte("package main\n// "+marker+"\n"), 0o644)
 
-	findings, err := scanTraces(dir)
+	findings, err := scanTraces(dir, false)
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestScanTracesSkipsGitDir(t *testing.T) {
 	os.MkdirAll(gitDir, 0o755)
 	os.WriteFile(filepath.Join(gitDir, "COMMIT"), []byte("co-auth"+"ored-by: cla"+"ude\n"), 0o644)
 
-	findings, err := scanTraces(dir)
+	findings, err := scanTraces(dir, false)
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestScanOverlongLineFailsClosed(t *testing.T) {
 		big[i] = 'x'
 	}
 	os.WriteFile(filepath.Join(dir, "huge.txt"), big, 0o644)
-	findings, err := scanTraces(dir)
+	findings, err := scanTraces(dir, false)
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestCheckFailsClosedOnUnreadable(t *testing.T) {
 	if err := os.Symlink(filepath.Join(dir, "does-not-exist"), link); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
-	findings, err := scanTraces(dir)
+	findings, err := scanTraces(dir, false)
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -239,4 +239,64 @@ func contains(s, sub string) bool {
 		}
 	}
 	return false
+}
+
+// A binary file (NUL byte) is skipped by default but scanned with --all.
+func TestScanTracesBinaryFile(t *testing.T) {
+	dir := t.TempDir()
+	marker := "Cla" + "ude"
+	// A NUL byte near the start marks it binary; the marker follows.
+	content := append([]byte{'M', 'Z', 0, 0}, []byte(marker)...)
+	bin := filepath.Join(dir, "artifact.bin")
+	if err := os.WriteFile(bin, content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	def, err := scanTraces(dir, false)
+	if err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	if len(def) != 0 {
+		t.Fatalf("binary file should be skipped by default, got %+v", def)
+	}
+
+	all, err := scanTraces(dir, true)
+	if err != nil {
+		t.Fatalf("scan --all: %v", err)
+	}
+	if len(all) == 0 {
+		t.Fatal("--all should scan the binary file and find the marker")
+	}
+}
+
+func TestValidateDir(t *testing.T) {
+	ok := []string{"sub", "a/b", "./x", "."}
+	for _, d := range ok {
+		if err := validateDir(d); err != nil {
+			t.Errorf("expected %q valid: %v", d, err)
+		}
+	}
+	bad := []string{"..", "../x", "a/../../b", "../../etc"}
+	for _, d := range bad {
+		if err := validateDir(d); err == nil {
+			t.Errorf("expected %q rejected", d)
+		}
+	}
+}
+
+func TestCmdCheckRejectsUnknownFlag(t *testing.T) {
+	if code := cmdCheck([]string{"--bogus"}); code != 2 {
+		t.Fatalf("unknown flag exit = %d, want 2", code)
+	}
+}
+
+func TestCmdCheckAllFlag(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "clean.go"),
+		[]byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := cmdCheck([]string{"--all", dir}); code != 0 {
+		t.Fatalf("clean tree with --all exit = %d, want 0", code)
+	}
 }

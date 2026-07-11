@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // Version is the CLI version. Override at build time with -ldflags.
@@ -28,6 +30,23 @@ func validateName(name string) error {
 	}
 	if reserved[name] {
 		return fmt.Errorf("%q is a reserved name", name)
+	}
+	return nil
+}
+
+// validateDir reports whether a --dir value is safe to scaffold into. The
+// project name is already validated, but the destination directory is caller
+// input, so reject a ".." segment that would let the target escape the intended
+// location.
+func validateDir(dir string) error {
+	clean := filepath.Clean(dir)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("invalid --dir %q: must not traverse above the working directory", dir)
+	}
+	for _, part := range strings.Split(filepath.ToSlash(clean), "/") {
+		if part == ".." {
+			return fmt.Errorf("invalid --dir %q: must not contain a %q segment", dir, "..")
+		}
 	}
 	return nil
 }

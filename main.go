@@ -3,7 +3,7 @@
 // Usage:
 //
 //	goloop new <name> [--module path] [--dir path] [--force]
-//	goloop check [dir]     scan for AI-assistant traces (exit non-zero on any)
+//	goloop check [dir] [--all]   scan for AI-assistant traces (exit non-zero on any)
 //	goloop doctor          check that expected tools are installed
 //	goloop status          summarize the module in the current directory
 //	goloop version         print the CLI version
@@ -56,7 +56,7 @@ func usage() {
 
 usage:
   goloop new <name> [--module path] [--dir path] [--force]
-  goloop check [dir]     scan for AI-assistant traces
+  goloop check [dir] [--all]  scan for AI-assistant traces (--all: include binaries)
   goloop doctor          check that expected tools are installed
   goloop status          summarize the module in the current directory
   goloop version         print the CLI version

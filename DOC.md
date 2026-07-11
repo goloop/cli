@@ -37,19 +37,22 @@ Scaffolds a minimal goloop-first service:
 | `README.md` | how to run |
 
 The name must match `^[a-z][a-z0-9]*(-[a-z0-9]+)*$` and must not be a reserved
-word. Without `--force`, an existing target directory is left untouched.
+word. `--dir` must not traverse above the working directory (no `..` segment).
+Without `--force`, an existing target directory is left untouched.
 
 ## check
 
 ```text
-goloop check [dir]
+goloop check [dir] [--all]
 ```
 
 Walks `dir` (default `.`) and reports every line that contains an AI-assistant
 marker, skipping `.git`, `node_modules`, `vendor` and `dist`. It exits `0` when
 clean and `1` when any marker is found, so it slots into CI to keep a product
-repository free of assistant traces. Unreadable or binary files are skipped, not
-treated as errors.
+repository free of assistant traces. A file that looks binary (a NUL byte near
+its start) is skipped by default, since a compiled artifact or image is not
+source; pass `--all` to scan every file fail-closed. A file that cannot be read
+or fully scanned is reported, not silently skipped.
 
 ## doctor
 
