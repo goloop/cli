@@ -1,4 +1,4 @@
-[![Go Reference](https://img.shields.io/badge/godoc-reference-blue)](https://pkg.go.dev/github.com/goloop/cli) [![License](https://img.shields.io/badge/license-MIT-brightgreen)](https://github.com/goloop/cli/blob/master/LICENSE) [![Stay with Ukraine](https://img.shields.io/static/v1?label=Stay%20with&message=Ukraine%20♥&color=ffD700&labelColor=0057B8&style=flat)](https://u24.gov.ua/)
+[![Go Reference](https://img.shields.io/badge/godoc-reference-blue)](https://pkg.go.dev/github.com/goloop/cli) [![License](https://img.shields.io/badge/license-MIT-brightgreen)](https://github.com/goloop/cli/blob/v1/LICENSE) [![Stay with Ukraine](https://img.shields.io/static/v1?label=Stay%20with&message=Ukraine%20♥&color=ffD700&labelColor=0057B8&style=flat)](https://u24.gov.ua/)
 
 # cli
 
@@ -55,3 +55,7 @@ is intentionally out of the first version.
 ## License
 
 MIT - see [LICENSE](LICENSE).
+
+## Release v1.0.0
+
+Report directory traversal errors instead of marking an unreadable path as clean. The v1 release keeps the existing import path and public API. Future incompatible changes require a new major version.

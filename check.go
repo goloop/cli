@@ -48,11 +48,7 @@ func scanTraces(root string, scanAll bool) ([]Finding, error) {
 	var findings []Finding
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			// Skip an unreadable subtree rather than aborting the whole walk.
-			if d != nil && d.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
+			return err
 		}
 		if d.IsDir() {
 			if skipDirs[d.Name()] {

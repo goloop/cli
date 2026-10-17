@@ -8,7 +8,7 @@ import (
 )
 
 // Version is the CLI version. Override at build time with -ldflags.
-var Version = "v0.0.0-dev"
+var Version = "v1.0.0"
 
 // nameRe is the allowed project-name shape: a lowercase letter followed by
 // lowercase letters, digits and single dashes.

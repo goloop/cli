@@ -89,3 +89,7 @@ Prints the CLI version and platform. Override the version at build time with
 The MVP is `new`, `check`, `doctor`, `status` and `version`. Multi-repo project
 topologies, deploy scaffolding and container smoke tests are intentionally out
 of the first version.
+
+## Release v1.0.0
+
+Report directory traversal errors instead of marking an unreadable path as clean. The v1 release keeps the existing import path and public API. Future incompatible changes require a new major version.
