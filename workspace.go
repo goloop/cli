@@ -4,11 +4,22 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"strings"
 )
 
 // Version is the CLI version. Override at build time with -ldflags.
-var Version = "v1.0.0"
+var Version string
+
+func buildVersion() string {
+	if Version != "" {
+		return Version
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return "v1.0.1"
+}
 
 // nameRe is the allowed project-name shape: a lowercase letter followed by
 // lowercase letters, digits and single dashes.

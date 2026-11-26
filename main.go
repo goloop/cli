@@ -38,7 +38,7 @@ func run(args []string) int {
 	case "status":
 		return cmdStatus(args[1:])
 	case "version":
-		fmt.Printf("goloop %s %s/%s\n", Version, runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("goloop %s %s/%s\n", buildVersion(), runtime.GOOS, runtime.GOARCH)
 		return 0
 	case "help", "-h", "--help":
 		usage()

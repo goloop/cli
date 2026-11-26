@@ -48,7 +48,11 @@ func run() error {
 		app.WithLogger(slog.New(slog.NewTextHandler(os.Stdout, nil))),
 		app.WithShutdownTimeout(10*time.Second),
 	)
-	a.Use(app.HTTPServer("http", &http.Server{Addr: ":8080", Handler: mux}))
+	addr := os.Getenv("ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+	a.Use(app.HTTPServer("http", &http.Server{Addr: addr, Handler: mux}))
 
 	return a.Run(context.Background())
 }
@@ -66,7 +70,7 @@ A goloop-first service scaffolded with ` + "`goloop new`" + `.
 
 ## Run
 
-` + "```bash\ngo mod tidy\ngo run .\n```" + `
+` + "```bash\ngo mod tidy\nset -a\n. ./.env\nset +a\ngo run .\n```" + `
 `,
 }
 
