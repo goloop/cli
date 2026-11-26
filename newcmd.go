@@ -17,7 +17,7 @@ var serviceFiles = map[string]string{
 
 go 1.24
 
-require github.com/goloop/app v1.0.0
+require github.com/goloop/app v1.0.1
 `,
 	"main.go": `package main
 

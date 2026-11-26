@@ -87,3 +87,7 @@ of the first version.
 ## Release v1.0.0
 
 Report directory traversal errors instead of marking an unreadable path as clean. The v1 release keeps the existing import path and public API. Future incompatible changes require a new major version.
+
+## Usage notes
+
+The service template uses app v1.0.1. The --force flag overwrites the files supplied by the template and leaves unrelated files in the target directory.

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Read check rules from a project file.
 
+Use the current app release in new services.
+
 ## [1.0.1] - 2026-11-26
 
 Use the configured service address and show the installed version.
