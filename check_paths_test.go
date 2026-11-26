@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestScanTracesMissingDirectory(t *testing.T) {
-	_, err := scanTraces(filepath.Join(t.TempDir(), "missing"), false)
+func TestScanMarkersMissingDirectory(t *testing.T) {
+	_, err := scanMarkers(filepath.Join(t.TempDir(), "missing"), false, []string{"draft-only"}, "")
 	if err == nil {
 		t.Fatal("missing directory reported as clean")
 	}

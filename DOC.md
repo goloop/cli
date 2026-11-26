@@ -42,17 +42,11 @@ Without `--force`, an existing target directory is left untouched.
 
 ## check
 
-```text
-goloop check [dir] [--all]
+```sh
+goloop check --deny-file rules.txt .
 ```
 
-Walks `dir` (default `.`) and reports every line that contains an AI-assistant
-marker, skipping `.git`, `node_modules`, `vendor` and `dist`. It exits `0` when
-clean and `1` when any marker is found, so it slots into CI to keep a product
-repository free of assistant traces. A file that looks binary (a NUL byte near
-its start) is skipped by default, since a compiled artifact or image is not
-source; pass `--all` to scan every file fail-closed. A file that cannot be read
-or fully scanned is reported, not silently skipped.
+List forbidden substrings in a text file, one per line. Pass its path with `--deny-file` or set `GOLOOP_DENY_FILE`. Matching ignores case. The scan skips the rule file and the directories `.git`, `node_modules`, `vendor`, and `dist`. Use `--all` to include binary files. Exit status 0 means clean, 1 indicates a match or read error, and 2 indicates a usage error.
 
 ## doctor
 

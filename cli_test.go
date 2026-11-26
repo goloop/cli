@@ -21,17 +21,15 @@ func TestValidateName(t *testing.T) {
 	}
 }
 
-func TestScanTraces(t *testing.T) {
+func TestScanMarkers(t *testing.T) {
 	dir := t.TempDir()
 	clean := filepath.Join(dir, "clean.go")
 	dirty := filepath.Join(dir, "dirty.go")
-	// Build the fixture markers from fragments so this test file itself stays
-	// clean under a boundary scan.
-	marker := "Gene" + "rated by " + "Cla" + "ude"
+	marker := "DRAFT-ONLY"
 	os.WriteFile(clean, []byte("package main\n// a normal comment\n"), 0o644)
 	os.WriteFile(dirty, []byte("package main\n// "+marker+"\n"), 0o644)
 
-	findings, err := scanTraces(dir, false)
+	findings, err := scanMarkers(dir, false, []string{"draft-only"}, "")
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -45,13 +43,13 @@ func TestScanTraces(t *testing.T) {
 	}
 }
 
-func TestScanTracesSkipsGitDir(t *testing.T) {
+func TestScanMarkersSkipsGitDir(t *testing.T) {
 	dir := t.TempDir()
 	gitDir := filepath.Join(dir, ".git")
 	os.MkdirAll(gitDir, 0o755)
-	os.WriteFile(filepath.Join(gitDir, "COMMIT"), []byte("co-auth"+"ored-by: cla"+"ude\n"), 0o644)
+	os.WriteFile(filepath.Join(gitDir, "COMMIT"), []byte("draft-only\n"), 0o644)
 
-	findings, err := scanTraces(dir, false)
+	findings, err := scanMarkers(dir, false, []string{"draft-only"}, "")
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -91,7 +89,17 @@ func TestNewScaffold(t *testing.T) {
 	}
 }
 
+func setCheckRules(t *testing.T) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "rules.txt")
+	if err := os.WriteFile(path, []byte("draft-only\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GOLOOP_DENY_FILE", path)
+}
+
 func TestCmdCheckCleanAndDirty(t *testing.T) {
+	setCheckRules(t)
 	clean := t.TempDir()
 	os.WriteFile(filepath.Join(clean, "a.go"), []byte("package main\n"), 0o644)
 	if code := cmdCheck([]string{clean}); code != 0 {
@@ -99,7 +107,7 @@ func TestCmdCheckCleanAndDirty(t *testing.T) {
 	}
 
 	dirty := t.TempDir()
-	os.WriteFile(filepath.Join(dirty, "b.txt"), []byte("cop"+"ilot wrote this\n"), 0o644)
+	os.WriteFile(filepath.Join(dirty, "b.txt"), []byte("DRAFT-ONLY\n"), 0o644)
 	if code := cmdCheck([]string{dirty}); code != 1 {
 		t.Fatalf("dirty dir should fail, got %d", code)
 	}
@@ -135,7 +143,7 @@ func TestScanOverlongLineFailsClosed(t *testing.T) {
 		big[i] = 'x'
 	}
 	os.WriteFile(filepath.Join(dir, "huge.txt"), big, 0o644)
-	findings, err := scanTraces(dir, false)
+	findings, err := scanMarkers(dir, false, []string{"draft-only"}, "")
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -196,7 +204,7 @@ func TestCheckFailsClosedOnUnreadable(t *testing.T) {
 	if err := os.Symlink(filepath.Join(dir, "does-not-exist"), link); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
-	findings, err := scanTraces(dir, false)
+	findings, err := scanMarkers(dir, false, []string{"draft-only"}, "")
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -242,9 +250,9 @@ func contains(s, sub string) bool {
 }
 
 // A binary file (NUL byte) is skipped by default but scanned with --all.
-func TestScanTracesBinaryFile(t *testing.T) {
+func TestScanMarkersBinaryFile(t *testing.T) {
 	dir := t.TempDir()
-	marker := "Cla" + "ude"
+	marker := "draft-only"
 	// A NUL byte near the start marks it binary; the marker follows.
 	content := append([]byte{'M', 'Z', 0, 0}, []byte(marker)...)
 	bin := filepath.Join(dir, "artifact.bin")
@@ -252,7 +260,7 @@ func TestScanTracesBinaryFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	def, err := scanTraces(dir, false)
+	def, err := scanMarkers(dir, false, []string{"draft-only"}, "")
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
@@ -260,7 +268,7 @@ func TestScanTracesBinaryFile(t *testing.T) {
 		t.Fatalf("binary file should be skipped by default, got %+v", def)
 	}
 
-	all, err := scanTraces(dir, true)
+	all, err := scanMarkers(dir, true, []string{"draft-only"}, "")
 	if err != nil {
 		t.Fatalf("scan --all: %v", err)
 	}
@@ -291,6 +299,7 @@ func TestCmdCheckRejectsUnknownFlag(t *testing.T) {
 }
 
 func TestCmdCheckAllFlag(t *testing.T) {
+	setCheckRules(t)
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "clean.go"),
 		[]byte("package main\n"), 0o644); err != nil {

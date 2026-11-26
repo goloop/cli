@@ -18,7 +18,7 @@ The binary is named `goloop`.
 
 ```text
 goloop new <name> [--module path] [--dir path] [--force]
-goloop check [dir]     scan for AI-assistant traces (exit non-zero on any)
+goloop check [dir]     scan with a project rule file
 goloop doctor          check that expected tools are installed
 goloop status          summarize the module in the current directory
 goloop version         print the CLI version
@@ -33,9 +33,11 @@ single dashes. It refuses to overwrite an existing directory without `--force`.
 
 ### check
 
-Walks a directory and reports any AI-assistant traces (skipping `.git`,
-`node_modules`, `vendor`, `dist`). Use it in CI to keep product repositories
-clean. Exits non-zero when anything is found.
+```sh
+goloop check --deny-file rules.txt .
+```
+
+List forbidden substrings in a text file, one per line. Pass its path with `--deny-file` or set `GOLOOP_DENY_FILE`. Matching ignores case. The scan skips the rule file and the directories `.git`, `node_modules`, `vendor`, and `dist`. Use `--all` to include binary files. Exit status 0 means clean, 1 indicates a match or read error, and 2 indicates a usage error.
 
 ### doctor
 

@@ -10,23 +10,27 @@ import (
 	"strings"
 )
 
-// traceMarkers are case-insensitive substrings that betray AI-assistant use in
-// a product repository. The check command exists to keep them out.
-//
-// Each marker is assembled from fragments so that this scanner's own source
-// stays clean under the very check it performs (and under a boundary review of
-// this repository); the concatenation is identical at runtime. A consequence is
-// that the compiled binary DOES contain the joined markers, so never commit the
-// built cli binary to a product repository and keep it in .gitignore.
-var traceMarkers = []string{
-	"cla" + "ude",
-	"cur" + "sor",
-	"cop" + "ilot",
-	"chat" + "gpt",
-	"ai-gen" + "erated",
-	"gener" + "ated by",
-	"co-auth" + "ored-by",
-	"pro" + "mpt:",
+// readMarkers loads one case-insensitive literal per nonblank line.
+func readMarkers(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	var markers []string
+	sc := bufio.NewScanner(file)
+	for sc.Scan() {
+		if m := strings.TrimSpace(sc.Text()); m != "" {
+			markers = append(markers, strings.ToLower(m))
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
+	if len(markers) == 0 {
+		return nil, fmt.Errorf("empty rule file %q", path)
+	}
+	return markers, nil
 }
 
 // skipDirs are directories the scan never descends into.
@@ -41,10 +45,10 @@ type Finding struct {
 	Marker string
 }
 
-// scanTraces walks root and returns every marker hit across the files it can
+// scanMarkers walks root and returns every marker hit across the files it can
 // read, plus an entry for any file it cannot scan (see scanFile). It is the
 // core of the check command and is deliberately pure for testing.
-func scanTraces(root string, scanAll bool) ([]Finding, error) {
+func scanMarkers(root string, scanAll bool, markers []string, ruleFile string) ([]Finding, error) {
 	var findings []Finding
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -56,7 +60,16 @@ func scanTraces(root string, scanAll bool) ([]Finding, error) {
 			}
 			return nil
 		}
-		hits, ferr := scanFile(path, scanAll)
+		if ruleFile != "" {
+			abs, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			if abs == ruleFile {
+				return nil
+			}
+		}
+		hits, ferr := scanFile(path, scanAll, markers)
 		findings = append(findings, hits...) // keep partial hits even on error
 		if ferr != nil {
 			// A file we cannot fully scan (for example an overlong line) is
@@ -73,7 +86,7 @@ func scanTraces(root string, scanAll bool) ([]Finding, error) {
 // file that looks binary (a NUL byte near its start) is skipped: a compiled
 // artifact or image is not source and only produces noise. With scanAll the
 // scan stays fail-closed and inspects every file.
-func scanFile(path string, scanAll bool) ([]Finding, error) {
+func scanFile(path string, scanAll bool, markers []string) ([]Finding, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		// Fail closed: a file the scanner cannot open (permissions, a special
@@ -101,7 +114,7 @@ func scanFile(path string, scanAll bool) ([]Finding, error) {
 	for sc.Scan() {
 		line++
 		lower := strings.ToLower(sc.Text())
-		for _, m := range traceMarkers {
+		for _, m := range markers {
 			if strings.Contains(lower, m) {
 				findings = append(findings, Finding{Path: path, Line: line, Marker: m})
 			}
@@ -113,13 +126,22 @@ func scanFile(path string, scanAll bool) ([]Finding, error) {
 	return findings, nil
 }
 
-// cmdCheck scans a directory (default ".") for AI-assistant traces and reports
+// cmdCheck scans a directory (default ".") for project-defined markers and reports
 // them. It exits non-zero when any are found.
 func cmdCheck(args []string) int {
 	scanAll := false
 	var dirs []string
-	for _, a := range args {
+	ruleFile := os.Getenv("GOLOOP_DENY_FILE")
+	for i := 0; i < len(args); i++ {
+		a := args[i]
 		switch {
+		case a == "--deny-file":
+			i++
+			if i >= len(args) || strings.HasPrefix(args[i], "-") {
+				fmt.Fprintln(os.Stderr, "check: --deny-file requires a path")
+				return 2
+			}
+			ruleFile = args[i]
 		case a == "--all":
 			scanAll = true
 		case strings.HasPrefix(a, "-"):
@@ -137,18 +159,32 @@ func cmdCheck(args []string) int {
 	if len(dirs) == 1 {
 		root = dirs[0]
 	}
-	findings, err := scanTraces(root, scanAll)
+	if ruleFile == "" {
+		fmt.Fprintln(os.Stderr, "check: specify --deny-file or GOLOOP_DENY_FILE")
+		return 2
+	}
+	ruleFile, err := filepath.Abs(ruleFile)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	markers, err := readMarkers(ruleFile)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	findings, err := scanMarkers(root, scanAll, markers, ruleFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "check: %v\n", err)
 		return 1
 	}
 	if len(findings) == 0 {
-		fmt.Printf("check: clean, no AI traces in %s\n", root)
+		fmt.Printf("check: clean, no matches in %s\n", root)
 		return 0
 	}
 	for _, f := range findings {
 		fmt.Printf("%s:%d: found %q\n", f.Path, f.Line, f.Marker)
 	}
-	fmt.Fprintf(os.Stderr, "check: %d trace(s) found\n", len(findings))
+	fmt.Fprintf(os.Stderr, "check: %d match(es) found\n", len(findings))
 	return 1
 }

@@ -18,7 +18,7 @@ go install github.com/goloop/cli@latest
 
 ```text
 goloop new <name> [--module path] [--dir path] [--force]
-goloop check [dir]     скан на сліди ШІ-асистента (ненульовий код при знахідці)
+goloop check [dir]     перевірити підрядки з файлу правил
 goloop doctor          перевірка наявності потрібних інструментів
 goloop status          підсумок модуля в поточній теці
 goloop version         версія CLI
@@ -33,9 +33,11 @@ goloop version         версія CLI
 
 ### check
 
-Обходить теку й повідомляє про будь-які сліди ШІ-асистента (пропускаючи `.git`,
-`node_modules`, `vendor`, `dist`). Використовуйте в CI, щоб тримати
-product-репозиторії чистими. Ненульовий код при знахідці.
+```sh
+goloop check --deny-file rules.txt .
+```
+
+Перелічіть заборонені підрядки у текстовому файлі, по одному на рядок. Передайте шлях через `--deny-file` або змінну `GOLOOP_DENY_FILE`. Пошук ігнорує регістр, сам файл правил та каталоги `.git`, `node_modules`, `vendor`, `dist`. Опція `--all` включає бінарні файли. Код завершення 0 означає успіх, 1 — збіг або помилку читання, 2 — помилку виклику.
 
 ### doctor
 

@@ -18,7 +18,7 @@ func buildVersion() string {
 	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		return info.Main.Version
 	}
-	return "v1.0.1"
+	return "v1.1.0"
 }
 
 // nameRe is the allowed project-name shape: a lowercase letter followed by
